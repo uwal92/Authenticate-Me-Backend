@@ -2,6 +2,10 @@ const router = require('express').Router();
 
 const apiRouter = require('./api');
 
+const sessionRouter = require('./session');
+router.use('/session', sessionRouter);
+
+
 router.use('/api', apiRouter);
 
 
