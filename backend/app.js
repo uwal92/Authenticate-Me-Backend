@@ -5,6 +5,10 @@ const router = express.Router();
 const routes = require('./routes');
 app.use(routes);
 
+const { environment } = require('./config');
+const isProduction = environment === 'production';
+
+
 
 router.get('/hello/world', function(req, res) {
   res.cookie('XSRF-TOKEN', req.csrfToken());
