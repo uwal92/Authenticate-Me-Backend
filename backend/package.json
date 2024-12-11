@@ -4,10 +4,13 @@
   "main": "app.js",
   "scripts": {
     "start": "node ./bin/www",
-    "start:development": "nodemon ./bin/www",
-    "start:production": "node ./bin/www",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "node psql-setup-script.js"
+    "build": "node psql-setup-script.js",
+    "sequelize": "sequelize",
+    "sequelize-cli": "sequelize-cli",
+    "db:migrate": "sequelize db:migrate",
+    "db:seed:all": "sequelize db:seed:all",
+    "db:migrate:undo:all": "sequelize db:migrate:undo:all",
+    "db:seed:undo:all": "sequelize db:seed:undo:all"
   },
   "keywords": [],
   "author": "",
