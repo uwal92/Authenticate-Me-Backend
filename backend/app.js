@@ -1,21 +1,53 @@
 const express = require('express');
-const app = express();
-const router = express.Router();
-
+const cookieParser = require('cookie-parser');
+const helmet = require('helmet');
+const csurf = require('csurf');
+const morgan = require('morgan');
 const routes = require('./routes');
-app.use(routes);
-
 const { environment } = require('./config');
+const { ValidationError } = require('sequelize');
+
+const app = express();
+
+// Check if the environment is production
 const isProduction = environment === 'production';
 
+// Middleware for logging
+app.use(morgan('dev'));
 
+// Parse cookies
+app.use(cookieParser());
 
-router.get('/hello/world', function(req, res) {
-  res.cookie('XSRF-TOKEN', req.csrfToken());
-  res.send('Hello World!');
-});
+// Parse JSON bodies
+app.use(express.json());
 
-// Catch unhandled requests and forward to error handler.
+// Security Middleware
+if (!isProduction) {
+  const cors = require('cors');
+  app.use(cors()); // Enable CORS in development
+}
+
+app.use(
+  helmet.crossOriginResourcePolicy({
+    policy: 'cross-origin',
+  })
+);
+
+// CSRF Middleware
+app.use(
+  csurf({
+    cookie: {
+      secure: isProduction, // Ensure cookies are secure in production
+      sameSite: isProduction && 'Lax', // Restrict cross-origin requests in production
+      httpOnly: true, // Cookies should be HTTP-only
+    },
+  })
+);
+
+// Connect all routes
+app.use(routes);
+
+// Catch unhandled requests and forward to error handler
 app.use((_req, _res, next) => {
   const err = new Error("The requested resource couldn't be found.");
   err.title = "Resource Not Found";
@@ -24,14 +56,11 @@ app.use((_req, _res, next) => {
   next(err);
 });
 
-
-const { ValidationError } = require('sequelize');
-
-// Process Sequelize errors
+// Process Sequelize validation errors
 app.use((err, _req, _res, next) => {
   if (err instanceof ValidationError) {
-    let errors = {};
-    for (let error of err.errors) {
+    const errors = {};
+    for (const error of err.errors) {
       errors[error.path] = error.message;
     }
     err.title = 'Validation error';
@@ -48,10 +77,8 @@ app.use((err, _req, res, _next) => {
     title: err.title || 'Server Error',
     message: err.message,
     errors: err.errors,
-    stack: isProduction ? null : err.stack
+    stack: isProduction ? null : err.stack,
   });
 });
-
-
 
 module.exports = app;

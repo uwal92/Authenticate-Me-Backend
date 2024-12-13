@@ -1,43 +1,22 @@
-// const router = require('express').Router();
-
-// const apiRouter = require('./api');
-
-// const sessionRouter = require('./session');
-// router.use('/session', sessionRouter);
-
-
-// router.use('/api', apiRouter);
-
-
-// router.post('/test', function(req, res) {
-//   res.json({ requestBody: req.body });
-// });
-
-
 const express = require('express');
-const router = express.Router();
-const { User } = require('../../db/models');
+const { check } = require('express-validator');
 const bcrypt = require('bcryptjs');
-
-router.post('/users', async (req, res, next) => {
-  try {
-    const { email, password, username } = req.body;
-    const hashedPassword = bcrypt.hashSync(password);
-    const user = await User.create({ email, username, hashedPassword });
-
-    res.json({ user });
-  } catch (err) {
-    next(err);
-  }
-});
-
-module.exports = router;
-
-
-//Test Authentication Utilities
+const { handleValidationErrors } = require('../../utils/validation');
 const { setTokenCookie, restoreUser, requireAuth } = require('../../utils/auth');
 const { User } = require('../../db/models');
 
+const router = express.Router();
+
+// CSRF Restore Route
+router.get('/csrf/restore', (req, res) => {
+  const csrfToken = req.csrfToken();
+  res.cookie('XSRF-TOKEN', csrfToken);
+  res.status(200).json({
+    'XSRF-Token': csrfToken,
+  });
+});
+
+// Test Authentication Utilities
 router.get('/set-token-cookie', async (req, res) => {
   const user = await User.findOne({ where: { username: 'Demo-lition' } });
   setTokenCookie(res, user);
@@ -52,9 +31,7 @@ router.get('/require-auth', restoreUser, requireAuth, (req, res) => {
   res.json(req.user);
 });
 
-
-
-// validateSignup
+// Signup Route
 const validateSignup = [
   check('email')
     .exists({ checkFalsy: true })
@@ -72,11 +49,19 @@ const validateSignup = [
     .exists({ checkFalsy: true })
     .isLength({ min: 6 })
     .withMessage('Password must be 6 characters or more.'),
-  handleValidationErrors
+  handleValidationErrors,
 ];
 
+router.post('/users', validateSignup, async (req, res, next) => {
+  try {
+    const { email, password, username } = req.body;
+    const hashedPassword = bcrypt.hashSync(password);
+    const user = await User.create({ email, username, hashedPassword });
 
+    res.json({ user });
+  } catch (err) {
+    next(err);
+  }
+});
 
 module.exports = router;
-
-
