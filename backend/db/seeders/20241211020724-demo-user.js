@@ -34,7 +34,7 @@ module.exports = {
           updatedAt: new Date()
         },
       ],
-      options
+      "users"
     );
   },
 
